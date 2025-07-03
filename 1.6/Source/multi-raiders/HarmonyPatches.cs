@@ -174,8 +174,8 @@ namespace MultiRaiders
                         pawn.mindState.canFleeIndividual = false;
                         firstPawnWasGenerated = true;
                     }
-                    if (!sortedPawns.ContainsKey(pawnGenOptionWithXenotype)) sortedPawns.Add(pawnGenOptionWithXenotype, []);
 
+                    if (!sortedPawns.ContainsKey(pawnGenOptionWithXenotype)) sortedPawns.Add(pawnGenOptionWithXenotype, []);
                     sortedPawns[pawnGenOptionWithXenotype].Add(pawn);
                 }
 
@@ -221,7 +221,95 @@ namespace MultiRaiders
             }
         }
 
-        [HarmonyPatch(typeof(Thing), "TakeDamage")]
+        [HarmonyPatch(typeof(PawnGroupKindWorker_Shamblers), "GeneratePawns")]
+        public static class PawnGroupKindWorker_Shamblers_GeneratePawns_Patch
+        {
+            public static bool Prefix(PawnGroupKindWorker_Shamblers __instance, PawnGroupMakerParms parms, PawnGroupMaker groupMaker, List<Pawn> outPawns, bool errorOnZeroResults = true)
+            {
+                if (!__instance.CanGenerateFrom(parms, groupMaker))
+                {
+                    if (errorOnZeroResults)
+                    {
+                        string[] array = new string[5];
+                        array[0] = "Cannot generate pawns for ";
+                        int num = 1;
+                        Faction faction = parms.faction;
+                        array[num] = ((faction != null) ? faction.ToString() : null);
+                        array[2] = " with ";
+                        array[3] = parms.points.ToString();
+                        array[4] = ". Defaulting to a single random cheap group.";
+                        Log.Error(string.Concat(array));
+                    }
+                    return false;
+                }
+
+                float totalRaidPoints = parms.points;
+                float minPoints = groupMaker.options.Min((PawnGenOption opt) => opt.Cost);
+
+                Dictionary<PawnGenOption, List<Pawn>> sortedPawns = [];
+                while (totalRaidPoints > minPoints)
+                {
+                    PawnGenOption pawnGenOption;
+                    groupMaker.options.TryRandomElementByWeight((PawnGenOption gr) => gr.selectionWeight, out pawnGenOption);
+                    if (pawnGenOption.Cost <= totalRaidPoints)
+                    {
+                        totalRaidPoints -= pawnGenOption.Cost;
+                        DevelopmentalStage developmentalStage = DevelopmentalStage.Adult;
+                        if (Find.Storyteller.difficulty.ChildrenAllowed && Find.Storyteller.difficulty.childShamblersAllowed)
+                        {
+                            developmentalStage |= DevelopmentalStage.Child;
+                        }
+                        PawnKindDef kind = pawnGenOption.kind;
+                        Faction faction2 = parms.faction;
+                        PawnGenerationContext pawnGenerationContext = PawnGenerationContext.NonPlayer;
+                        DevelopmentalStage developmentalStage2 = developmentalStage;
+                        FloatRange floatRange = new(0f, 8f);
+                        Pawn pawn = PawnGenerator.GeneratePawn(new PawnGenerationRequest(kind, faction2, pawnGenerationContext, null, false, false, false, true, false, 1f, false, true, false, true, true, false, false, false, false, 0f, 0f, null, 1f, null, null, null, null, null, null, null, null, null, null, null, null, false, false, false, false, null, null, null, null, null, 0f, developmentalStage2, null, floatRange, null, false, false, false, -1, 0, false));
+
+                        if (!sortedPawns.ContainsKey(pawnGenOption)) sortedPawns.Add(pawnGenOption, []);
+                        sortedPawns[pawnGenOption].Add(pawn);
+                    }
+                }
+
+                int totalRequestedPawns = sortedPawns.Values.Sum(e => e.Count);
+                foreach (var sp in sortedPawns)
+                {
+                    List<Pawn> pawnsForConfig = sp.Value;
+
+                    int raidersToGenerate = sp.Value.Count;
+                    float thisConfigFraction = (float)raidersToGenerate / (float)totalRequestedPawns;
+
+                    int maxRealRaiders = Math.Max(1, (int)(MultiRaidersSettings.Settings.MaxRealRaiders * thisConfigFraction));
+                    int realRaiders = Math.Min(maxRealRaiders, (int)(raidersToGenerate * (1.0f - MultiRaidersSettings.Settings.ReplaceFractionWithFakes)));
+                    int fakeRaiders = Math.Max(0, raidersToGenerate - realRaiders);
+
+                    //Log.Message("Raid gen option: " + sp.Key.ToStringSafe());
+                    //Log.Message($"Fraction {thisConfigFraction} realRaiders {realRaiders} fakeRaiders {fakeRaiders}");
+
+                    List<Pawn> ToGenerate = pawnsForConfig.GetRange(0, realRaiders);
+                    List<List<Pawn>> ListOfFakes = SplitListEvenly(pawnsForConfig.GetRange(realRaiders, fakeRaiders), realRaiders);
+
+                    for (int pawnIdx = 0; pawnIdx < realRaiders; pawnIdx++)
+                    {
+                        Pawn pawn = ToGenerate[pawnIdx];
+
+                        if (ListOfFakes[pawnIdx].Count > 0)
+                        {
+                            HediffMirrorImage mirrorHediff = (HediffMirrorImage)pawn.health.AddHediff(DefDatabase<HediffDef>.GetNamed("MirrorImage"));
+                            HediffComp_MirrorImage comp = mirrorHediff.TryGetComp<HediffComp_MirrorImage>();
+                            comp.fakePawns = ListOfFakes[pawnIdx];
+                            mirrorHediff.UpdateSeverity();
+                            //Log.Message($"Adding {comp.fakePawns.Count} to real pawn");
+                        }
+
+                        outPawns.Add(pawn);
+                    }
+                }
+                return false;
+            }
+        }
+
+                [HarmonyPatch(typeof(Thing), "TakeDamage")]
         public class TakeDamagePatch
         {
             public static bool Prefix(Thing __instance, ref DamageInfo dinfo)
