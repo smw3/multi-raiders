@@ -14,7 +14,7 @@ namespace MultiRaiders.Hediff
     {
         public static float GetTickOffsetForPawn(Pawn pawn, int idx)
         {
-            float tickOffset = GenTicks.TicksGame * 0.0005f * idx + idx * 1234.0f + (float)(pawn.HashOffset() % 1000);
+            float tickOffset = GenTicks.TicksGame * 0.0001f * idx + idx * 1234.0f + (float)(pawn.HashOffset() % 1000);
 
             return tickOffset;
         }
