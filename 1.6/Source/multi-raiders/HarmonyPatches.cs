@@ -30,8 +30,8 @@ namespace MultiRaiders
                 int realRaiders = Math.Min(maxRaiders, (int)(parms.pawnCount * (1.0f - MultiRaidersSettings.Settings.ReplaceFractionWithFakes)));
                 int fakeRaiders = Math.Max(0, raidersToGenerate - realRaiders);
 
-                List<Pawn> realPawns = [];
-                for (int i = 0; i < realRaiders; i++)
+                List<Pawn> allPawns = [];
+                for (int i = 0; i < raidersToGenerate; i++)
                 {
                     PawnKindDef pawnKind = parms.pawnKind;
                     Faction faction = parms.faction;
@@ -45,43 +45,13 @@ namespace MultiRaiders
                     });
                     if (pawn != null)
                     {
-                        realPawns.Add(pawn);
+                        allPawns.Add(pawn);
                     }
                 }
 
-                Dictionary<Pawn, List<Pawn>> fakePawns = [];
-                for (int i = 0; i < fakeRaiders; i++)
+                if (allPawns.Any<Pawn>())
                 {
-                    Pawn parentPawn = realPawns[i % realPawns.Count];
-
-                    PawnKindDef pawnKind = parms.pawnKind;
-                    Faction faction = parms.faction;
-                    PawnGenerationContext pawnGenerationContext = PawnGenerationContext.NonPlayer;
-                    float biocodeWeaponsChance = parms.biocodeWeaponsChance;
-                    float biocodeApparelChance = parms.biocodeApparelChance;
-                    bool pawnsCanBringFood = __instance.def.pawnsCanBringFood;
-                    Pawn pawn = PawnGenerator.GeneratePawn(new PawnGenerationRequest(pawnKind, faction, pawnGenerationContext, null, false, false, false, true, true, 1f, false, true, false, pawnsCanBringFood, true, false, false, false, false, biocodeWeaponsChance, biocodeApparelChance, null, 1f, null, null, null, null, null, null, null, null, null, null, null, null, false, false, false, false, null, null, null, null, null, 0f, DevelopmentalStage.Adult, null, null, null, false, false, false, -1, 0, false)
-                    {
-                        BiocodeApparelChance = 1f
-                    });
-                    if (pawn != null)
-                    {
-                        if (!fakePawns.ContainsKey(parentPawn)) fakePawns.Add(parentPawn, []);
-                        fakePawns[parentPawn].Add(pawn);
-                    }
-                }
-
-                foreach (Pawn pawn in realPawns)
-                {
-                    if (!fakePawns.ContainsKey(pawn)) continue;
-                    HediffMirrorImage mirrorHediff = (HediffMirrorImage)pawn.health.AddHediff(DefDatabase<HediffDef>.GetNamed("MirrorImage"));
-                    HediffComp_MirrorImage comp = mirrorHediff.TryGetComp<HediffComp_MirrorImage>();
-                    comp.fakePawns = fakePawns[pawn];
-                    mirrorHediff.UpdateSeverity();
-                }
-
-                if (realPawns.Any<Pawn>())
-                {
+                    List<Pawn> realPawns = GeneratorHelper.SwarmifySpawnedPawns(allPawns);
                     parms.raidArrivalMode.Worker.Arrive(realPawns, parms);
                     __result = realPawns;
                     return false;
@@ -90,22 +60,6 @@ namespace MultiRaiders
                 __result = null;
                 return false;
             }
-        }
-        public static List<List<T>> SplitListEvenly<T>(List<T> source, int n)
-        {
-            var result = new List<List<T>>(n);
-            int total = source.Count;
-            int minSize = total / n;
-            int remainder = total % n;
-            int start = 0;
-
-            for (int i = 0; i < n; i++)
-            {
-                int size = minSize + (i < remainder ? 1 : 0);
-                result.Add(source.GetRange(start, size));
-                start += size;
-            }
-            return result;
         }
 
         [HarmonyPatch(typeof(PawnGroupKindWorker_Normal), "GeneratePawns")]
@@ -179,44 +133,7 @@ namespace MultiRaiders
                     sortedPawns[pawnGenOptionWithXenotype].Add(pawn);
                 }
 
-                int totalRequestedPawns = sortedPawns.Values.Sum(e => e.Count);
-                //Log.Message($"Total raid pawns {totalRequestedPawns}");
-
-                foreach (var sp in sortedPawns)
-                {
-                    List<Pawn> pawnsForConfig = sp.Value;
-
-                    int raidersToGenerate = sp.Value.Count;
-                    float thisConfigFraction = (float)raidersToGenerate / (float)totalRequestedPawns;
-
-                    int maxRealRaiders = Math.Max(1, (int)(MultiRaidersSettings.Settings.MaxRealRaiders * thisConfigFraction));
-                    int realRaiders = Math.Min(maxRealRaiders, (int)(raidersToGenerate * (1.0f - MultiRaidersSettings.Settings.ReplaceFractionWithFakes)));
-                    int fakeRaiders = Math.Max(0, raidersToGenerate - realRaiders);
-
-                    //Log.Message("Raid gen option: " + sp.Key.ToStringSafe());
-                    //Log.Message($"Fraction {thisConfigFraction} realRaiders {realRaiders} fakeRaiders {fakeRaiders}");
-
-                    List<Pawn> ToGenerate = pawnsForConfig.GetRange(0, realRaiders);
-                    List<List<Pawn>> ListOfFakes = SplitListEvenly(pawnsForConfig.GetRange(realRaiders, fakeRaiders), realRaiders);
-
-                    for (int pawnIdx = 0; pawnIdx < realRaiders; pawnIdx++)
-                    {
-                        Pawn pawn = ToGenerate[pawnIdx];
-
-                        if (ListOfFakes[pawnIdx].Count > 0)
-                        {
-                            HediffMirrorImage mirrorHediff = (HediffMirrorImage)pawn.health.AddHediff(DefDatabase<HediffDef>.GetNamed("MirrorImage"));
-                            HediffComp_MirrorImage comp = mirrorHediff.TryGetComp<HediffComp_MirrorImage>();
-                            comp.fakePawns = ListOfFakes[pawnIdx];
-                            mirrorHediff.UpdateSeverity();
-                            //Log.Message($"Adding {comp.fakePawns.Count} to real pawn");
-                        }
-
-                        outPawns.Add(pawn);
-                    }
-                }
-                //Log.Message($"Generated {outPawns.Count} real pawns");
-                
+                outPawns.AddRange(GeneratorHelper.SwarmifySpawnedPawns(sortedPawns));                
                 return false;
             }
         }
@@ -271,40 +188,7 @@ namespace MultiRaiders
                     }
                 }
 
-                int totalRequestedPawns = sortedPawns.Values.Sum(e => e.Count);
-                foreach (var sp in sortedPawns)
-                {
-                    List<Pawn> pawnsForConfig = sp.Value;
-
-                    int raidersToGenerate = sp.Value.Count;
-                    float thisConfigFraction = (float)raidersToGenerate / (float)totalRequestedPawns;
-
-                    int maxRealRaiders = Math.Max(1, (int)(MultiRaidersSettings.Settings.MaxRealRaiders * thisConfigFraction));
-                    int realRaiders = Math.Min(maxRealRaiders, (int)(raidersToGenerate * (1.0f - MultiRaidersSettings.Settings.ReplaceFractionWithFakes)));
-                    int fakeRaiders = Math.Max(0, raidersToGenerate - realRaiders);
-
-                    //Log.Message("Raid gen option: " + sp.Key.ToStringSafe());
-                    //Log.Message($"Fraction {thisConfigFraction} realRaiders {realRaiders} fakeRaiders {fakeRaiders}");
-
-                    List<Pawn> ToGenerate = pawnsForConfig.GetRange(0, realRaiders);
-                    List<List<Pawn>> ListOfFakes = SplitListEvenly(pawnsForConfig.GetRange(realRaiders, fakeRaiders), realRaiders);
-
-                    for (int pawnIdx = 0; pawnIdx < realRaiders; pawnIdx++)
-                    {
-                        Pawn pawn = ToGenerate[pawnIdx];
-
-                        if (ListOfFakes[pawnIdx].Count > 0)
-                        {
-                            HediffMirrorImage mirrorHediff = (HediffMirrorImage)pawn.health.AddHediff(DefDatabase<HediffDef>.GetNamed("MirrorImage"));
-                            HediffComp_MirrorImage comp = mirrorHediff.TryGetComp<HediffComp_MirrorImage>();
-                            comp.fakePawns = ListOfFakes[pawnIdx];
-                            mirrorHediff.UpdateSeverity();
-                            //Log.Message($"Adding {comp.fakePawns.Count} to real pawn");
-                        }
-
-                        outPawns.Add(pawn);
-                    }
-                }
+                outPawns.AddRange(GeneratorHelper.SwarmifySpawnedPawns(sortedPawns));
                 return false;
             }
         }
@@ -322,54 +206,29 @@ namespace MultiRaiders
                     list.Add(pawn);
                 }
                 
-                int realRaiders = Math.Min(list.Count, MultiRaidersSettings.Settings.MaxRealRaiders);
-                if (list.Count > MultiRaidersSettings.Settings.MaxRealRaiders)
-                {
-                    List<Pawn> ToGenerate = list.GetRange(0, realRaiders);
-                    List<List<Pawn>> ListOfFakes = SplitListEvenly(list.GetRange(realRaiders, list.Count - realRaiders), ToGenerate.Count);
-                    List<Pawn> outPawns = []
-                    ;
-                    for (int pawnIdx = 0; pawnIdx < realRaiders; pawnIdx++)
-                    {
-                        Pawn pawn = ToGenerate[pawnIdx];
-
-                        if (ListOfFakes[pawnIdx].Count > 0)
-                        {
-                            HediffMirrorImage mirrorHediff = (HediffMirrorImage)pawn.health.AddHediff(DefDatabase<HediffDef>.GetNamed("MirrorImage"));
-                            HediffComp_MirrorImage comp = mirrorHediff.TryGetComp<HediffComp_MirrorImage>();
-                            comp.fakePawns = ListOfFakes[pawnIdx];
-                            mirrorHediff.UpdateSeverity();
-                        }
-
-                        outPawns.Add(pawn);
-                    }
-
-                    __result = outPawns;
-                } else
-                {
-                    __result = list;
-                }
+                __result = GeneratorHelper.SwarmifySpawnedPawns(list);
                 return false;
             }
         }
 
-                [HarmonyPatch(typeof(Thing), "TakeDamage")]
+        [HarmonyPatch(typeof(Thing), "TakeDamage")]
         public class TakeDamagePatch
         {
             public static bool Prefix(Thing __instance, ref DamageInfo dinfo)
             {
-                if (__instance is not Pawn pawn) return true;
+                if (__instance == null || __instance is not Pawn pawn) return true;
                 if (dinfo.Def == DamageDefOf.Bomb || dinfo.Def == DamageDefOf.Flame || dinfo.Def == DamageDefOf.ToxGas)
                 {
                     if (pawn.health == null) return true;
                     HediffMirrorImage mirrorImage = pawn.health.hediffSet.GetFirstHediff<HediffMirrorImage>();
+                    if (mirrorImage == null) return true;
                     dinfo.SetAmount(dinfo.Amount * (1.0f + mirrorImage.FakePawns.Count));
                 }
                 return true;
             }
         }
 
-                [HarmonyPatch(typeof(Pawn_HealthTracker), "ShouldBeDowned")]
+        [HarmonyPatch(typeof(Pawn_HealthTracker), "ShouldBeDowned")]
         public static class Pawn_HealthTracker_ShouldBeDowned_Patch
         {
             private static Lazy<FieldInfo> _effectivePawn = new(() => AccessTools.Field(typeof(Pawn_HealthTracker), "pawn"));

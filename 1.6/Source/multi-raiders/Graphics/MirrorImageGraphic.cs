@@ -14,7 +14,7 @@ namespace MultiRaiders.Graphics
 {
     public class MirrorImageGraphic : Graphic_Multi
     {
-        public static Lazy<FieldInfo> matsInfo = new Lazy<FieldInfo>(() => AccessTools.Field(typeof(MirrorImageGraphic), "mats"));
+        public static Lazy<FieldInfo> matsInfo = new(() => AccessTools.Field(typeof(MirrorImageGraphic), "mats"));
 
         public Material[] _mats;
         public float zoom = 0.9f;
@@ -22,6 +22,8 @@ namespace MultiRaiders.Graphics
         protected int _renderQueue;
         protected List<ShaderParameter> _shaderParameters;
         protected Pawn _pawn;
+
+        public override bool ShouldDrawRotated => false;
 
         public override void Init(GraphicRequest req)
         {
