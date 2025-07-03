@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Defs>
+	<HediffDef>
+		<hediffClass>MultiRaiders.Hediff.HediffMirrorImage</hediffClass>
+		<defName>MirrorImage</defName>
+		<label>mirror image</label>
+		<description>Many dudes, handle it.</description>
+		<isBad>false</isBad>
+		<preventsDeath>true</preventsDeath>
+		<comps>
+			<li Class="MultiRaiders.Hediff.HediffCompProperties_MirrorImage">
+				<graphicData>
+					<graphicClass>MultiRaiders.Graphics.MirrorImageGraphic</graphicClass>
+					<drawSize>1.7</drawSize>
+				</graphicData>
+			</li>
+		</comps>
+		<stages>
+			<li>
+				<label>2x strength</label>
+				<minSeverity>0.25</minSeverity>
+				<statFactors>
+					<AimingDelayFactor>0.5</AimingDelayFactor>
+					<MeleeCooldownFactor>0.5</MeleeCooldownFactor>
+					<RangedCooldownFactor>0.5</RangedCooldownFactor>
+				</statFactors>
+			</li>
+			<li>
+				<label>3x strength</label>
+				<minSeverity>0.5</minSeverity>
+				<statFactors>
+					<AimingDelayFactor>0.33</AimingDelayFactor>
+					<MeleeCooldownFactor>0.33</MeleeCooldownFactor>
+					<RangedCooldownFactor>0.33</RangedCooldownFactor>
+				</statFactors>
+			</li>
+			<li>
+				<label>4x strength</label>
+				<minSeverity>0.75</minSeverity>
+				<statFactors>
+					<AimingDelayFactor>0.25</AimingDelayFactor>
+					<MeleeCooldownFactor>0.25</MeleeCooldownFactor>
+					<RangedCooldownFactor>0.25</RangedCooldownFactor>
+				</statFactors>
+			</li>
+			<li>
+				<label>5x strength</label>
+				<minSeverity>1.0</minSeverity>
+				<statFactors>
+					<AimingDelayFactor>0.2</AimingDelayFactor>
+					<MeleeCooldownFactor>0.2</MeleeCooldownFactor>
+					<RangedCooldownFactor>0.2</RangedCooldownFactor>
+				</statFactors>
+			</li>
+		</stages>
+	</HediffDef>
+</Defs>
