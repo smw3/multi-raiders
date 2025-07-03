@@ -203,11 +203,14 @@ namespace MultiRaiders
                     {
                         Pawn pawn = ToGenerate[pawnIdx];
 
-                        HediffMirrorImage mirrorHediff = (HediffMirrorImage)pawn.health.AddHediff(DefDatabase<HediffDef>.GetNamed("MirrorImage"));
-                        HediffComp_MirrorImage comp = mirrorHediff.TryGetComp<HediffComp_MirrorImage>();
-                        comp.fakePawns = ListOfFakes[pawnIdx];
-                        mirrorHediff.UpdateSeverity();
-                        //Log.Message($"Adding {comp.fakePawns.Count} to real pawn");
+                        if (ListOfFakes[pawnIdx].Count > 0)
+                        {
+                            HediffMirrorImage mirrorHediff = (HediffMirrorImage)pawn.health.AddHediff(DefDatabase<HediffDef>.GetNamed("MirrorImage"));
+                            HediffComp_MirrorImage comp = mirrorHediff.TryGetComp<HediffComp_MirrorImage>();
+                            comp.fakePawns = ListOfFakes[pawnIdx];
+                            mirrorHediff.UpdateSeverity();
+                            //Log.Message($"Adding {comp.fakePawns.Count} to real pawn");
+                        }
 
                         outPawns.Add(pawn);
                     }
