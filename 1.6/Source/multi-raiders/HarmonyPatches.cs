@@ -309,6 +309,50 @@ namespace MultiRaiders
             }
         }
 
+        [HarmonyPatch(typeof(AggressiveAnimalIncidentUtility), nameof(AggressiveAnimalIncidentUtility.GenerateAnimals), new Type[] { typeof(PawnKindDef), typeof(PlanetTile), typeof(float), typeof(int) })]
+        public static class AggressiveAnimalIncidentUtility_GenerateAnimals_Patch
+        {
+            public static bool Prefix(ref List<Pawn>  __result, PawnKindDef animalKind, PlanetTile tile, float points, int animalCount = 0)
+            {
+                List<Pawn> list = new List<Pawn>();
+                int num = ((animalCount > 0) ? animalCount : AggressiveAnimalIncidentUtility.GetAnimalsCount(animalKind, points));
+                for (int i = 0; i < num; i++)
+                {
+                    Pawn pawn = PawnGenerator.GeneratePawn(new PawnGenerationRequest(animalKind, null, PawnGenerationContext.NonPlayer, new PlanetTile?(tile), false, false, false, true, false, 1f, false, true, false, true, true, false, false, false, false, 0f, 0f, null, 1f, null, null, null, null, null, null, null, null, null, null, null, null, false, false, false, false, null, null, null, null, null, 0f, DevelopmentalStage.Adult, null, null, null, false, false, false, -1, 0, false));
+                    list.Add(pawn);
+                }
+                
+                int realRaiders = Math.Min(list.Count, MultiRaidersSettings.Settings.MaxRealRaiders);
+                if (list.Count > MultiRaidersSettings.Settings.MaxRealRaiders)
+                {
+                    List<Pawn> ToGenerate = list.GetRange(0, realRaiders);
+                    List<List<Pawn>> ListOfFakes = SplitListEvenly(list.GetRange(realRaiders, list.Count - realRaiders), ToGenerate.Count);
+                    List<Pawn> outPawns = []
+                    ;
+                    for (int pawnIdx = 0; pawnIdx < realRaiders; pawnIdx++)
+                    {
+                        Pawn pawn = ToGenerate[pawnIdx];
+
+                        if (ListOfFakes[pawnIdx].Count > 0)
+                        {
+                            HediffMirrorImage mirrorHediff = (HediffMirrorImage)pawn.health.AddHediff(DefDatabase<HediffDef>.GetNamed("MirrorImage"));
+                            HediffComp_MirrorImage comp = mirrorHediff.TryGetComp<HediffComp_MirrorImage>();
+                            comp.fakePawns = ListOfFakes[pawnIdx];
+                            mirrorHediff.UpdateSeverity();
+                        }
+
+                        outPawns.Add(pawn);
+                    }
+
+                    __result = outPawns;
+                } else
+                {
+                    __result = list;
+                }
+                return false;
+            }
+        }
+
                 [HarmonyPatch(typeof(Thing), "TakeDamage")]
         public class TakeDamagePatch
         {
