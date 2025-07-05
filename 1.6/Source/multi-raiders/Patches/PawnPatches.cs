@@ -80,5 +80,20 @@ namespace MultiRaiders.Patches
                 return false;
             }
         }
+
+        [HarmonyPatch(typeof(Pawn), nameof(Pawn.ExitMap))]
+        public static class Pawn_ExitMap_Patch
+        {
+            public static bool Prefix(Pawn __instance, bool allowedToJoinOrCreateCaravan, Rot4 exitDir)
+            {
+                if (__instance == null || __instance.health == null) return true;
+                HediffMirrorImage hediffMirrorImage;
+                while ((hediffMirrorImage = __instance.health.hediffSet.GetFirstHediff<HediffMirrorImage>()) != null) {
+                    __instance.health.RemoveHediff(hediffMirrorImage);
+                }
+                
+                return true;
+            }
+        }
     }
 }
