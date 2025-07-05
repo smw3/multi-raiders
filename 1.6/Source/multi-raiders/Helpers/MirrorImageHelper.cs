@@ -8,13 +8,13 @@ using System.Threading.Tasks;
 using UnityEngine;
 using Verse;
 
-namespace MultiRaiders.Hediff
+namespace MultiRaiders.Helpers
 {
     public static class MirrorImageHelper
     {
         public static float GetTickOffsetForPawn(Pawn pawn, int idx)
         {
-            float tickOffset = GenTicks.TicksGame * 0.0005f * idx + idx * 1234.0f + (float)(pawn.HashOffset() % 1000);
+            float tickOffset = GenTicks.TicksGame * 0.0005f * idx + idx * 1234.0f + pawn.HashOffset() % 1000;
 
             return tickOffset;
         }

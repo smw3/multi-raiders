@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<LanguageData>
+	<ReplaceAlwaysFraction>Always replace % of raiders with fakes: {0}%</ReplaceAlwaysFraction>
+	<ReplaceAlwaysFractionDesc1>Replace fraction of ALL raids with fakes. If 0, mod will have no effect until raids get larger than the maximum pawn number.</ReplaceAlwaysFractionDesc1>
+	<ReplaceAlwaysFractionDesc2>If the max number of real raiders in this mod is set very high, it may never happen with vanilla raid generation.</ReplaceAlwaysFractionDesc2>
+	<ReplaceAlwaysFractionRec>Recommended: 0%</ReplaceAlwaysFractionRec>
+	<MaxRealRaiders>Maximum real raiders: {0}</MaxRealRaiders>
+	<MaxRealRaidersDesc1>Maximum real raid pawns. Pawns beyond this number will be generated as fakes instead.</MaxRealRaidersDesc1>
+	<MaxRealRaidersRec>Recommended: 120 (meaning mod is only active in LARGE raids)</MaxRealRaidersRec>
+	<FakesDropGear>Fake raiders drop gear/corpses</FakesDropGear>
+</LanguageData>

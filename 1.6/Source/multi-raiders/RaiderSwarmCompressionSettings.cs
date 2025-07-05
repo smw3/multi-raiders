@@ -7,14 +7,14 @@ using Verse;
 
 namespace MultiRaiders
 {
-    public class MultiRaidersSettings : ModSettings
+    public class RaiderSwarmCompressionSettings : ModSettings
     {
         public bool FakesDropGear = true;
 
         public float ReplaceFractionWithFakes = 0f;
         public int MaxRealRaiders = 120;
 
-        public static MultiRaidersSettings Settings => LoadedModManager.GetMod<MultiRaidersMod>().GetSettings<MultiRaidersSettings>();
+        public static RaiderSwarmCompressionSettings Settings => LoadedModManager.GetMod<RaiderSwarmCompressionMod>().GetSettings<RaiderSwarmCompressionSettings>();
 
         public override void ExposeData()
         {

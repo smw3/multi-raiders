@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Verse;
 
-namespace MultiRaiders
+namespace MultiRaiders.Map
 {
     public class MultiRaidersMapComponent(Verse.Map map) : MapComponent(map)
     {

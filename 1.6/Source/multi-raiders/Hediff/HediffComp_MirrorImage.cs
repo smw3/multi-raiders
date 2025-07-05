@@ -1,4 +1,5 @@
 ﻿using MultiRaiders.Graphics;
+using MultiRaiders.Helpers;
 using RimWorld;
 using System;
 using System.Collections.Generic;
@@ -53,7 +54,7 @@ namespace MultiRaiders.Hediff
         public override void CompExposeData()
         {
             base.CompExposeData();
-            Scribe_Collections.Look<Pawn>(ref this.fakePawns, "FakePawns", LookMode.Deep, Array.Empty<object>());
+            Scribe_Collections.Look<Pawn>(ref this.fakePawns, "FakePawns", LookMode.Deep, []);
         }
     }
 }

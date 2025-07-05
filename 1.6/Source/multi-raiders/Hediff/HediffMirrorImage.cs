@@ -1,4 +1,5 @@
-﻿using RimWorld;
+﻿using MultiRaiders.Helpers;
+using RimWorld;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -48,7 +49,7 @@ namespace MultiRaiders.Hediff
 
         private void MaybeDropItems(Pawn fakePawn)
         {
-            if (MultiRaidersSettings.Settings.FakesDropGear)
+            if (RaiderSwarmCompressionSettings.Settings.FakesDropGear)
             {
                 GenSpawn.Spawn(fakePawn, pawn.Position, pawn.Map, WipeMode.VanishOrMoveAside);
                 fakePawn.Kill(null);
@@ -75,8 +76,8 @@ namespace MultiRaiders.Hediff
         {
             if (wasDowned && !ShouldDown())
             {
-                HealToFull();
                 wasDowned = false;
+                HealToFull();                
             }
         }
 

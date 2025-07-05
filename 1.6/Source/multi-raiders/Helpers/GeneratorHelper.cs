@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Verse;
 
-namespace MultiRaiders
+namespace MultiRaiders.Helpers
 {
     public class GeneratorHelper
     {
@@ -29,7 +29,7 @@ namespace MultiRaiders
 
         public static List<Pawn> SwarmifySpawnedPawns(List<Pawn> unsortedPawns)
         {
-            if (unsortedPawns.Count < MultiRaidersSettings.Settings.MaxRealRaiders) { return unsortedPawns; }
+            if (unsortedPawns.Count < RaiderSwarmCompressionSettings.Settings.MaxRealRaiders) { return unsortedPawns; }
             Dictionary<int, List<Pawn>> sortedPawns = [];
             sortedPawns.Add(0, unsortedPawns);
             return SwarmifySpawnedPawns(sortedPawns);
@@ -39,7 +39,7 @@ namespace MultiRaiders
         {
             List<Pawn> outPawns = [];
             int totalRequestedPawns = sortedPawns.Values.Sum(e => e.Count);
-            if (totalRequestedPawns < MultiRaidersSettings.Settings.MaxRealRaiders)
+            if (totalRequestedPawns < RaiderSwarmCompressionSettings.Settings.MaxRealRaiders && RaiderSwarmCompressionSettings.Settings.ReplaceFractionWithFakes <= 0.0f)
             {
                 return [.. sortedPawns.Values.SelectMany(_ => _)];
             }
@@ -49,13 +49,14 @@ namespace MultiRaiders
                 List<Pawn> pawnsForConfig = sp.Value;
 
                 int raidersToGenerate = sp.Value.Count;
-                float thisConfigFraction = (float)raidersToGenerate / (float)totalRequestedPawns;
+                float thisConfigFraction = raidersToGenerate / (float)totalRequestedPawns;
 
-                int maxRealRaiders = Math.Max(1, (int)(MultiRaidersSettings.Settings.MaxRealRaiders * thisConfigFraction));
-                int realRaiders = Math.Min(maxRealRaiders, (int)(raidersToGenerate * (1.0f - MultiRaidersSettings.Settings.ReplaceFractionWithFakes)));
+                int maxRealRaiders = Math.Max(1, (int)(RaiderSwarmCompressionSettings.Settings.MaxRealRaiders * thisConfigFraction));
+                int realRaiders = Math.Max(1, Math.Min(maxRealRaiders, (int)(raidersToGenerate * (1.0f - RaiderSwarmCompressionSettings.Settings.ReplaceFractionWithFakes))));
                 int fakeRaiders = Math.Max(0, raidersToGenerate - realRaiders);
 
                 //Log.Message("Raid gen option: " + sp.Key.ToStringSafe());
+                //Log.Message($"Raid gen option: {MultiRaidersSettings.Settings.MaxRealRaiders} {MultiRaidersSettings.Settings.ReplaceFractionWithFakes}");
                 //Log.Message($"Fraction {thisConfigFraction} realRaiders {realRaiders} fakeRaiders {fakeRaiders}");
 
                 List<Pawn> ToGenerate = pawnsForConfig.GetRange(0, realRaiders);

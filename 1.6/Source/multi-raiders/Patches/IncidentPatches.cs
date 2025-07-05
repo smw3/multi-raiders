@@ -1,20 +1,17 @@
 ﻿using HarmonyLib;
-using MultiRaiders.Hediff;
+using MultiRaiders.Helpers;
 using RimWorld;
 using RimWorld.Planet;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using UnityEngine;
 using Verse;
-using static Unity.IO.LowLevel.Unsafe.AsyncReadManagerMetrics;
 
-namespace MultiRaiders
+namespace MultiRaiders.Patches
 {
-    public class HarmonyPatches
+    public class IncidentPatches
     {
         [HarmonyPatch(typeof(RaidStrategyWorker), nameof(RaidStrategyWorker.SpawnThreats))]
         public static class RaidStrategyWorker_SpawnThreats_Patch
@@ -25,9 +22,9 @@ namespace MultiRaiders
                 if (parms.pawnCount == 0) return true;
 
                 int raidersToGenerate = parms.pawnCount;
-                int maxRaiders = MultiRaidersSettings.Settings.MaxRealRaiders;
+                int maxRaiders = RaiderSwarmCompressionSettings.Settings.MaxRealRaiders;
 
-                int realRaiders = Math.Min(maxRaiders, (int)(parms.pawnCount * (1.0f - MultiRaidersSettings.Settings.ReplaceFractionWithFakes)));
+                int realRaiders = Math.Min(maxRaiders, (int)(parms.pawnCount * (1.0f - RaiderSwarmCompressionSettings.Settings.ReplaceFractionWithFakes)));
                 int fakeRaiders = Math.Max(0, raidersToGenerate - realRaiders);
 
                 List<Pawn> allPawns = [];
@@ -49,7 +46,7 @@ namespace MultiRaiders
                     }
                 }
 
-                if (allPawns.Any<Pawn>())
+                if (allPawns.Any())
                 {
                     List<Pawn> realPawns = GeneratorHelper.SwarmifySpawnedPawns(allPawns);
                     parms.raidArrivalMode.Worker.Arrive(realPawns, parms);
@@ -75,7 +72,7 @@ namespace MultiRaiders
                         array[0] = "Cannot generate pawns for ";
                         int num = 1;
                         Faction faction = parms.faction;
-                        array[num] = ((faction != null) ? faction.ToString() : null);
+                        array[num] = faction != null ? faction.ToString() : null;
                         array[2] = " with ";
                         array[3] = parms.points.ToString();
                         array[4] = ". Defaulting to a single random cheap group.";
@@ -84,13 +81,13 @@ namespace MultiRaiders
                     return false;
                 }
 
-                bool allowFood = parms.raidStrategy == null || parms.raidStrategy.pawnsCanBringFood || (parms.faction != null && !parms.faction.HostileTo(Faction.OfPlayer));
+                bool allowFood = parms.raidStrategy == null || parms.raidStrategy.pawnsCanBringFood || parms.faction != null && !parms.faction.HostileTo(Faction.OfPlayer);
                 bool firstPawnWasGenerated = false;
 
                 bool forceGenerateNewPawn = false;
                 bool allowDead = false;
 
-                Predicate<Pawn> validatorPreGear = ((parms.raidStrategy != null) ? ((Pawn p) => parms.raidStrategy.Worker.CanUsePawn(parms.points, p, outPawns)) : null);
+                Predicate<Pawn> validatorPreGear = parms.raidStrategy != null ? ((Pawn p) => parms.raidStrategy.Worker.CanUsePawn(parms.points, p, outPawns)) : null;
                 Dictionary<PawnGenOptionWithXenotype, List<Pawn>> sortedPawns = [];
 
                 foreach (PawnGenOptionWithXenotype pawnGenOptionWithXenotype in PawnGroupMakerUtility.ChoosePawnGenOptionsByPoints(parms.points, groupMaker.options, parms))
@@ -101,7 +98,7 @@ namespace MultiRaiders
                     Ideo ideo = parms.ideo;
                     XenotypeDef xenotype = pawnGenOptionWithXenotype.Xenotype;
                     PlanetTile? planetTile = new PlanetTile?(parms.tile);
-                    
+
                     bool inhabitants = parms.inhabitants;
                     PawnGenerationRequest pawnGenerationRequest = new PawnGenerationRequest(kind, faction2, pawnGenerationContext, planetTile, forceGenerateNewPawn, allowDead, parms.faction.deactivated, true, true, 1f, false, true, true, allowFood, true, inhabitants, false, false, false, 0f, 0f, null, 1f, null, validatorPreGear, null, null, null, null, null, null, null, null, null, ideo, false, false, false, false, null, null, xenotype, null, null, 0f, DevelopmentalStage.Adult, null, null, null, false, false, false, -1, 0, false);
                     if (parms.raidAgeRestriction != null && parms.raidAgeRestriction.Worker.ShouldApplyToKind(pawnGenOptionWithXenotype.Option.kind))
@@ -133,7 +130,7 @@ namespace MultiRaiders
                     sortedPawns[pawnGenOptionWithXenotype].Add(pawn);
                 }
 
-                outPawns.AddRange(GeneratorHelper.SwarmifySpawnedPawns(sortedPawns));                
+                outPawns.AddRange(GeneratorHelper.SwarmifySpawnedPawns(sortedPawns));
                 return false;
             }
         }
@@ -151,7 +148,7 @@ namespace MultiRaiders
                         array[0] = "Cannot generate pawns for ";
                         int num = 1;
                         Faction faction = parms.faction;
-                        array[num] = ((faction != null) ? faction.ToString() : null);
+                        array[num] = faction != null ? faction.ToString() : null;
                         array[2] = " with ";
                         array[3] = parms.points.ToString();
                         array[4] = ". Defaulting to a single random cheap group.";
@@ -161,13 +158,13 @@ namespace MultiRaiders
                 }
 
                 float totalRaidPoints = parms.points;
-                float minPoints = groupMaker.options.Min((PawnGenOption opt) => opt.Cost);
+                float minPoints = groupMaker.options.Min((opt) => opt.Cost);
 
                 Dictionary<PawnGenOption, List<Pawn>> sortedPawns = [];
                 while (totalRaidPoints > minPoints)
                 {
                     PawnGenOption pawnGenOption;
-                    groupMaker.options.TryRandomElementByWeight((PawnGenOption gr) => gr.selectionWeight, out pawnGenOption);
+                    groupMaker.options.TryRandomElementByWeight((gr) => gr.selectionWeight, out pawnGenOption);
                     if (pawnGenOption.Cost <= totalRaidPoints)
                     {
                         totalRaidPoints -= pawnGenOption.Cost;
@@ -196,71 +193,18 @@ namespace MultiRaiders
         [HarmonyPatch(typeof(AggressiveAnimalIncidentUtility), nameof(AggressiveAnimalIncidentUtility.GenerateAnimals), new Type[] { typeof(PawnKindDef), typeof(PlanetTile), typeof(float), typeof(int) })]
         public static class AggressiveAnimalIncidentUtility_GenerateAnimals_Patch
         {
-            public static bool Prefix(ref List<Pawn>  __result, PawnKindDef animalKind, PlanetTile tile, float points, int animalCount = 0)
+            public static bool Prefix(ref List<Pawn> __result, PawnKindDef animalKind, PlanetTile tile, float points, int animalCount = 0)
             {
                 List<Pawn> list = new List<Pawn>();
-                int num = ((animalCount > 0) ? animalCount : AggressiveAnimalIncidentUtility.GetAnimalsCount(animalKind, points));
+                int num = animalCount > 0 ? animalCount : AggressiveAnimalIncidentUtility.GetAnimalsCount(animalKind, points);
                 for (int i = 0; i < num; i++)
                 {
                     Pawn pawn = PawnGenerator.GeneratePawn(new PawnGenerationRequest(animalKind, null, PawnGenerationContext.NonPlayer, new PlanetTile?(tile), false, false, false, true, false, 1f, false, true, false, true, true, false, false, false, false, 0f, 0f, null, 1f, null, null, null, null, null, null, null, null, null, null, null, null, false, false, false, false, null, null, null, null, null, 0f, DevelopmentalStage.Adult, null, null, null, false, false, false, -1, 0, false));
                     list.Add(pawn);
                 }
-                
+
                 __result = GeneratorHelper.SwarmifySpawnedPawns(list);
                 return false;
-            }
-        }
-
-        [HarmonyPatch(typeof(Thing), "TakeDamage")]
-        public class TakeDamagePatch
-        {
-            public static bool Prefix(Thing __instance, ref DamageInfo dinfo)
-            {
-                if (__instance == null || __instance is not Pawn pawn) return true;
-                if (dinfo.Def == DamageDefOf.Bomb || dinfo.Def == DamageDefOf.Flame || dinfo.Def == DamageDefOf.ToxGas)
-                {
-                    if (pawn.health == null) return true;
-                    HediffMirrorImage mirrorImage = pawn.health.hediffSet.GetFirstHediff<HediffMirrorImage>();
-                    if (mirrorImage == null) return true;
-                    dinfo.SetAmount(dinfo.Amount * (1.0f + mirrorImage.FakePawns.Count));
-                }
-                return true;
-            }
-        }
-
-        [HarmonyPatch(typeof(Pawn_HealthTracker), "ShouldBeDowned")]
-        public static class Pawn_HealthTracker_ShouldBeDowned_Patch
-        {
-            private static Lazy<FieldInfo> _effectivePawn = new(() => AccessTools.Field(typeof(Pawn_HealthTracker), "pawn"));
-            public static void Postfix(ref bool __result, Pawn_HealthTracker __instance)
-            {
-                Pawn pawn = (Pawn)_effectivePawn.Value.GetValue(__instance);
-                HediffMirrorImage mirrorImage = pawn.health.hediffSet.GetFirstHediff<HediffMirrorImage>();
-                if (mirrorImage == null) return;
-
-                mirrorImage.wasDowned = __result;
-                if (__result)
-                {
-                    if (!mirrorImage.ShouldDown())
-                    {
-                        __result = false;
-                    }
-                }
-                return;
-            }
-        }
-
-        [HarmonyPatch(typeof(Pawn_HealthTracker), "CheckForStateChange")]
-        public static class Pawn_HealthTracker_CheckForStateChange_Patch
-        {
-            private static Lazy<FieldInfo> _effectivePawn = new(() => AccessTools.Field(typeof(Pawn_HealthTracker), "pawn"));
-            public static void Postfix(Pawn_HealthTracker __instance, DamageInfo? dinfo, Verse.Hediff hediff)
-            {
-                Pawn pawn = (Pawn)_effectivePawn.Value.GetValue(__instance);
-                HediffMirrorImage mirrorImage = pawn.health.hediffSet.GetFirstHediff<HediffMirrorImage>();
-                if (mirrorImage == null) return;
-
-                mirrorImage.ApplyFakeDownConsequences();
             }
         }
     }
