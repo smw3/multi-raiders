@@ -12,11 +12,12 @@ namespace MultiRaiders.Helpers
 {
     public static class MirrorImageHelper
     {
-        public static float GetTickOffsetForPawn(Pawn pawn, int idx)
+        public static float GetTickOffsetForPawn(Pawn pawn, int idx, bool asleep)
         {
-            float tickOffset = GenTicks.TicksGame * 0.0005f * idx + idx * 1234.0f + pawn.HashOffset() % 1000;
+            float tickOffset = idx * 1234.0f + pawn.HashOffset() % 1000;
+            float gameTicks = asleep ? 0.0f : GenTicks.TicksGame * 0.00015f * (idx + 1.0f);
 
-            return tickOffset;
+            return tickOffset + gameTicks;
         }
         public static Vector3 GetSwirlOffset(float time, float scale = 1f)
         {

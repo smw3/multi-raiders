@@ -39,11 +39,11 @@ namespace MultiRaiders.Graphics
             _mats = matsInfo.Value.GetValue(this) as Material[];
         }
 
-        public void SetMaterial(Pawn pawn, Rot4 rot)
+        public void SetMaterial(Pawn pawn, Rot4 rot, bool asleep)
         {
             MaterialRequest req1 = new()
             {
-                mainTex = PortraitsCache.Get(pawn, new Vector2(175f, 175f), rot, healthStateOverride: PawnHealthState.Mobile),
+                mainTex = PortraitsCache.Get(pawn, new Vector2(275f, 275f), rot, healthStateOverride: asleep ? PawnHealthState.Down : PawnHealthState.Mobile),
                 shader = _shader,
                 color = color,
                 colorTwo = colorTwo,

@@ -58,7 +58,7 @@ namespace MultiRaiders.Hediff
 
         private void BloodEffect(int value)
         {
-            float tickOffset = MirrorImageHelper.GetTickOffsetForPawn(pawn, value);            
+            float tickOffset = MirrorImageHelper.GetTickOffsetForPawn(pawn, value, false);            
             IntVec3 pos = pawn.Position + IntVec3.FromVector3(MirrorImageHelper.GetSwirlOffset(tickOffset, 1.0f));
 
             ThingDef thingDef = (this.pawn.IsMutant ? (this.pawn.mutant.Def.bloodDef ?? this.pawn.RaceProps.BloodDef) : this.pawn.RaceProps.BloodDef);

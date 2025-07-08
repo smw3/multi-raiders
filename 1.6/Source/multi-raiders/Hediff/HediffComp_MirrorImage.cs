@@ -35,15 +35,18 @@ namespace MultiRaiders.Hediff
         {
             int idx = 0;
             Pawn realPawn = this.parent.pawn;
+
+            bool asleep = !RestUtility.Awake(realPawn);
+
             foreach (Pawn fakePawn in fakePawns)
             {
-                float tickOffset = MirrorImageHelper.GetTickOffsetForPawn(fakePawn, idx);
+                float tickOffset = MirrorImageHelper.GetTickOffsetForPawn(fakePawn, idx, asleep);
                 Vector3 offset = MirrorImageHelper.GetSwirlOffset(tickOffset, 1.0f);
                 Rot4 rot = MirrorImageHelper.GetSwirlInfluencedRot4(realPawn.Rotation, MirrorImageHelper.GetSwirlDirection(tickOffset, 1.0f), 0.15f);
 
                 if (Props.graphicData?.Graphic is MirrorImageGraphic gfx)
                 {
-                    gfx.SetMaterial(fakePawn, rot);
+                    gfx.SetMaterial(fakePawn, rot, asleep);
                 }
 
                 Props.graphicData?.Graphic.Draw(new Vector3(drawPos.x, AltitudeLayer.Pawn.AltitudeFor(), drawPos.z) + offset, rot, fakePawn);
