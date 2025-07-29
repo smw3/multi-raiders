@@ -17,7 +17,10 @@ namespace MultiRaiders.Hediff
 {
     public class HediffMirrorImage : HediffWithComps
     {
-        internal bool wasDowned;
+        private static HediffDef[] HediffIgnoreOnHeal;
+        public bool wasDowned;
+
+        private bool canDieThisTick = true;
 
         public List<Pawn> FakePawns
         {
@@ -25,6 +28,20 @@ namespace MultiRaiders.Hediff
             {
                 return GetComp<HediffComp_MirrorImage>().fakePawns;
             }
+        }
+
+        public HediffMirrorImage()
+        {
+            HediffIgnoreOnHeal =
+            [
+                HediffDefOf.Scaria,
+                HediffDefOf.ScariaInfection
+            ];
+        }
+        public override void PostTick()
+        {
+            base.PostTick();
+            canDieThisTick = true;
         }
 
         public void UpdateSeverity()
@@ -74,9 +91,12 @@ namespace MultiRaiders.Hediff
         }
         public void ApplyFakeDownConsequences()
         {
-            if (wasDowned && !ShouldDown())
+            //Log.Message($"ApplyFakeDownConsequences {wasDowned} {ShouldDown()}");
+            //Log.Message($"Hediff count {this.pawn.health.hediffSet.hediffs.Count}");
+            if (wasDowned && canDieThisTick && !ShouldDown())
             {
                 wasDowned = false;
+                canDieThisTick = false;
                 HealToFull();                
             }
         }
@@ -84,7 +104,7 @@ namespace MultiRaiders.Hediff
         private void HealToFull()
         {
             KillFake();
-            while (HealthUtility.FixWorstHealthCondition(pawn, []) != null);            
+            while (HealthUtility.FixWorstHealthCondition(pawn, HediffIgnoreOnHeal) != null);            
             
             EnsureWeaponEquipped();
         }

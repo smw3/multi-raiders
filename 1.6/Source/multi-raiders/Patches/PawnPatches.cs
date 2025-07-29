@@ -77,7 +77,7 @@ namespace MultiRaiders.Patches
             {
                 // This is bad. I don't know why this happens, so this is an ugly workaround
                 if (__instance.Part == null) return false;
-                return false;
+                return true;
             }
         }
 
@@ -92,6 +92,27 @@ namespace MultiRaiders.Patches
                     __instance.health.RemoveHediff(hediffMirrorImage);
                 }
                 
+                return true;
+            }
+        }
+
+
+        [HarmonyPatch(typeof(DistressCallUtility), nameof(DistressCallUtility.SpawnCorpses))]
+        public static class DistressCallUtility_SpawnCorpses_Patch
+        {
+            public static bool Prefix(Pawn __instance, Verse.Map map, IEnumerable<Pawn> pawns, IEnumerable<Pawn> killers, IntVec3 root, int radius)
+            {
+                foreach (var pawn in pawns)
+                {
+                    if (pawn == null || pawn.health == null) continue;
+                    // Remove mirror image hediffs from the pawn
+                    HediffMirrorImage hediffMirrorImage;
+                    while ((hediffMirrorImage = pawn.health.hediffSet.GetFirstHediff<HediffMirrorImage>()) != null)
+                    {
+                        pawn.health.RemoveHediff(hediffMirrorImage);
+                    }
+                }
+
                 return true;
             }
         }

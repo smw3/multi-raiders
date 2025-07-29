@@ -12,7 +12,7 @@
 			<li Class="MultiRaiders.Hediff.HediffCompProperties_MirrorImage">
 				<graphicData>
 					<graphicClass>MultiRaiders.Graphics.MirrorImageGraphic</graphicClass>
-					<drawSize>1.7</drawSize>
+					<drawSize>4.0</drawSize>
 				</graphicData>
 			</li>
 		</comps>

@@ -17,7 +17,6 @@ namespace MultiRaiders.Graphics
         public static Lazy<FieldInfo> matsInfo = new(() => AccessTools.Field(typeof(MirrorImageGraphic), "mats"));
 
         public Material[] _mats;
-        public float zoom = 0.9f;
         protected Shader _shader;
         protected int _renderQueue;
         protected List<ShaderParameter> _shaderParameters;
@@ -43,12 +42,12 @@ namespace MultiRaiders.Graphics
         {
             MaterialRequest req1 = new()
             {
-                mainTex = PortraitsCache.Get(pawn, new Vector2(275f, 275f), rot, healthStateOverride: asleep ? PawnHealthState.Down : PawnHealthState.Mobile),
+                mainTex = PortraitsCache.Get(pawn, new Vector2(600f, 600f), rot, healthStateOverride: asleep ? PawnHealthState.Down : PawnHealthState.Mobile, cameraZoom: 0.5f, compensateForUIScale: false, supersample: false),
                 shader = _shader,
                 color = color,
                 colorTwo = colorTwo,
                 renderQueue = _renderQueue,
-                shaderParameters = _shaderParameters,
+                shaderParameters = _shaderParameters
             };
 
             _mats[rot.AsInt] = MaterialPool.MatFrom(req1);

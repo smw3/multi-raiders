@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using MultiRaiders.Hediff;
 using MultiRaiders.Helpers;
 using RimWorld;
 using RimWorld.Planet;
@@ -190,21 +191,77 @@ namespace MultiRaiders.Patches
             }
         }
 
-        [HarmonyPatch(typeof(AggressiveAnimalIncidentUtility), nameof(AggressiveAnimalIncidentUtility.GenerateAnimals), new Type[] { typeof(PawnKindDef), typeof(PlanetTile), typeof(float), typeof(int) })]
+        [HarmonyPatch(typeof(AggressiveAnimalIncidentUtility), nameof(AggressiveAnimalIncidentUtility.GenerateAnimals), [typeof(PawnKindDef), typeof(PlanetTile), typeof(float), typeof(int)])]
         public static class AggressiveAnimalIncidentUtility_GenerateAnimals_Patch
         {
-            public static bool Prefix(ref List<Pawn> __result, PawnKindDef animalKind, PlanetTile tile, float points, int animalCount = 0)
+            public static void Postfix(ref List<Pawn> __result, PawnKindDef animalKind, PlanetTile tile, float points, int animalCount = 0)
             {
-                List<Pawn> list = new List<Pawn>();
-                int num = animalCount > 0 ? animalCount : AggressiveAnimalIncidentUtility.GetAnimalsCount(animalKind, points);
-                for (int i = 0; i < num; i++)
-                {
-                    Pawn pawn = PawnGenerator.GeneratePawn(new PawnGenerationRequest(animalKind, null, PawnGenerationContext.NonPlayer, new PlanetTile?(tile), false, false, false, true, false, 1f, false, true, false, true, true, false, false, false, false, 0f, 0f, null, 1f, null, null, null, null, null, null, null, null, null, null, null, null, false, false, false, false, null, null, null, null, null, 0f, DevelopmentalStage.Adult, null, null, null, false, false, false, -1, 0, false));
-                    list.Add(pawn);
-                }
+                __result = GeneratorHelper.SwarmifySpawnedPawns(__result);
+            }
+        }
 
-                __result = GeneratorHelper.SwarmifySpawnedPawns(list);
-                return false;
+        [HarmonyPatch(typeof(AggressiveAnimalIncidentUtility), nameof(AggressiveAnimalIncidentUtility.GenerateAnimals), [typeof(List<PawnKindDef>), typeof(PlanetTile)])]
+        public static class AggressiveAnimalIncidentUtility_GenerateAnimals2_Patch
+        {
+            public static void Postfix(ref List<Pawn> __result, List<PawnKindDef> animalKinds, PlanetTile tile)
+            {
+                __result = GeneratorHelper.SwarmifySpawnedPawns(__result);
+            }
+        }
+
+        [HarmonyPatch(typeof(Pawn_HealthTracker), nameof(Pawn_HealthTracker.AddHediff), [typeof(HediffDef), typeof(BodyPartRecord), typeof(DamageInfo?), typeof(DamageWorker.DamageResult)])]
+        public static class Pawn_HealthTracker_AddHediff_Patch
+        {
+            public static void Postfix(ref Verse.Hediff __result, Pawn_HealthTracker __instance, HediffDef def, BodyPartRecord part = null, DamageInfo? dinfo = null, DamageWorker.DamageResult result = null)
+            {
+                if (def == HediffDefOf.Scaria || def == HediffDefOf.ScariaInfection)
+                {
+                    Pawn pawn = (Pawn)AccessTools.Field(typeof(Pawn_HealthTracker), "pawn").GetValue(__instance);
+                    HediffMirrorImage mirrorImage = pawn.health.hediffSet.GetFirstHediff<HediffMirrorImage>();
+                    if (mirrorImage != null && mirrorImage.FakePawns.Count > 0)
+                    {
+                        foreach (Pawn fakePawn in mirrorImage.FakePawns)
+                        {
+                            fakePawn.health.AddHediff(def, part, dinfo, result);
+                        }
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(Pawn_HealthTracker), nameof(Pawn_HealthTracker.AddHediff), [typeof(Verse.Hediff), typeof(BodyPartRecord), typeof(DamageInfo?), typeof(DamageWorker.DamageResult)])]
+        public static class Pawn_HealthTracker_AddHediff2_Patch
+        {
+            public static void Postfix(Pawn_HealthTracker __instance, Verse.Hediff hediff, BodyPartRecord part = null, DamageInfo? dinfo = null, DamageWorker.DamageResult result = null)
+            {
+                if (hediff.def == HediffDefOf.Scaria || hediff.def == HediffDefOf.ScariaInfection)
+                {
+                    Pawn pawn = (Pawn)AccessTools.Field(typeof(Pawn_HealthTracker), "pawn").GetValue(__instance);
+                    HediffMirrorImage mirrorImage = pawn.health.hediffSet.GetFirstHediff<HediffMirrorImage>();
+                    if (mirrorImage != null && mirrorImage.FakePawns.Count > 0)
+                    {
+                        foreach (Pawn fakePawn in mirrorImage.FakePawns)
+                        {
+                            fakePawn.health.AddHediff(hediff, part, dinfo, result);
+                        }
+                    }
+                }
+            }
+        }
+
+        [HarmonyPatch(typeof(Hediff_Scaria), "get_IsBerserk")]
+        public static class Hediff_Scaria_get_IsBerserk_Patch
+        {
+            public static bool Prefix(Hediff_Scaria __instance, ref bool __result)
+            {
+                //Log.Message($"Instance: {__instance}");
+                //Log.Message($"Pawn: {__instance.pawn} MentalStateHandler: {__instance.pawn?.mindState?.mentalStateHandler}");
+
+                if (__instance.pawn?.mindState?.mentalStateHandler == null) { 
+                    __result = false;
+                    return false;
+                }
+                return true;
             }
         }
     }
