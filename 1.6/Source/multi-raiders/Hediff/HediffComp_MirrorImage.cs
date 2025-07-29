@@ -46,8 +46,6 @@ namespace MultiRaiders.Hediff
 
                 if (Props.graphicData?.Graphic is MirrorImageGraphic gfx)
                 {
-                    //gfx.drawSize = fakePawn.ageTracker.CurKindLifeStage.bodyGraphicData.drawSize;
-                    Log.Message($"Drawsize: {gfx.drawSize} for {fakePawn.Name}");
                     gfx.SetMaterial(fakePawn, rot, asleep);
                 }
 
