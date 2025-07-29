@@ -1,4 +1,5 @@
-﻿using RimWorld;
+﻿using MultiRaiders.Hediff;
+using RimWorld;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -57,6 +58,18 @@ namespace MultiRaiders.Helpers
                 swirlRot = Rot4.West;
 
             return swirlRot;
+        }
+
+        public static void AddScariaToMirrors(Pawn pawn)
+        {
+            HediffMirrorImage mirrorHediff = pawn.health.hediffSet.GetFirstHediff<HediffMirrorImage>();
+            if (mirrorHediff == null) return;
+
+            HediffComp_MirrorImage comp = mirrorHediff.TryGetComp<HediffComp_MirrorImage>();
+            foreach (Pawn fpawn in comp.fakePawns)
+            {
+                fpawn.health.AddHediff(HediffDefOf.Scaria, null, null, null);
+            }
         }
     }
 }

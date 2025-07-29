@@ -6,6 +6,8 @@ using RimWorld.Planet;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 using Verse;
@@ -209,42 +211,36 @@ namespace MultiRaiders.Patches
             }
         }
 
-        [HarmonyPatch(typeof(Pawn_HealthTracker), nameof(Pawn_HealthTracker.AddHediff), [typeof(HediffDef), typeof(BodyPartRecord), typeof(DamageInfo?), typeof(DamageWorker.DamageResult)])]
-        public static class Pawn_HealthTracker_AddHediff_Patch
+        [HarmonyPatch(typeof(IncidentWorker_AggressiveAnimals), "TryExecuteWorker")]
+        public static class ThingDef_get_DescriptionDetailed_Patch
         {
-            public static void Postfix(ref Verse.Hediff __result, Pawn_HealthTracker __instance, HediffDef def, BodyPartRecord part = null, DamageInfo? dinfo = null, DamageWorker.DamageResult result = null)
+            public static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
             {
-                if (def == HediffDefOf.Scaria || def == HediffDefOf.ScariaInfection)
-                {
-                    Pawn pawn = (Pawn)AccessTools.Field(typeof(Pawn_HealthTracker), "pawn").GetValue(__instance);
-                    HediffMirrorImage mirrorImage = pawn.health.hediffSet.GetFirstHediff<HediffMirrorImage>();
-                    if (mirrorImage != null && mirrorImage.FakePawns.Count > 0)
-                    {
-                        foreach (Pawn fakePawn in mirrorImage.FakePawns)
-                        {
-                            fakePawn.health.AddHediff(def, part, dinfo, result);
-                        }
-                    }
-                }
-            }
-        }
+                var codes = new List<CodeInstruction>(instructions);
+                var addScariaMethod = AccessTools.Method(typeof(MirrorImageHelper), nameof(MirrorImageHelper.AddScariaToMirrors));
 
-        [HarmonyPatch(typeof(Pawn_HealthTracker), nameof(Pawn_HealthTracker.AddHediff), [typeof(Verse.Hediff), typeof(BodyPartRecord), typeof(DamageInfo?), typeof(DamageWorker.DamageResult)])]
-        public static class Pawn_HealthTracker_AddHediff2_Patch
-        {
-            public static void Postfix(Pawn_HealthTracker __instance, Verse.Hediff hediff, BodyPartRecord part = null, DamageInfo? dinfo = null, DamageWorker.DamageResult result = null)
-            {
-                if (hediff.def == HediffDefOf.Scaria || hediff.def == HediffDefOf.ScariaInfection)
+                for (var i = 0; i < codes.Count; i++)
                 {
-                    Pawn pawn = (Pawn)AccessTools.Field(typeof(Pawn_HealthTracker), "pawn").GetValue(__instance);
-                    HediffMirrorImage mirrorImage = pawn.health.hediffSet.GetFirstHediff<HediffMirrorImage>();
-                    if (mirrorImage != null && mirrorImage.FakePawns.Count > 0)
+                    // Find the reference to scaria, then let the line play out and append another one.
+                    if (codes[i].opcode == OpCodes.Ldsfld && codes[i].operand as FieldInfo == AccessTools.Field(typeof(HediffDefOf), nameof(HediffDefOf.Scaria)))
                     {
-                        foreach (Pawn fakePawn in mirrorImage.FakePawns)
-                        {
-                            fakePawn.health.AddHediff(hediff, part, dinfo, result);
-                        }
-                    }
+                        
+                        yield return codes[i++];                        
+                        yield return codes[i++];                        
+                        yield return codes[i++];                        
+                        yield return codes[i++];                        
+                        yield return codes[i++];                        
+                        yield return codes[i++];                        
+                        yield return codes[i++];                        
+                        yield return codes[i];
+
+                        // addScariaMethod(pawn)
+                        yield return new CodeInstruction(OpCodes.Dup); ;
+                        yield return new CodeInstruction(OpCodes.Callvirt, addScariaMethod);
+                    } else {
+                        
+                        yield return codes[i]; 
+                    }                        
                 }
             }
         }
@@ -254,9 +250,6 @@ namespace MultiRaiders.Patches
         {
             public static bool Prefix(Hediff_Scaria __instance, ref bool __result)
             {
-                //Log.Message($"Instance: {__instance}");
-                //Log.Message($"Pawn: {__instance.pawn} MentalStateHandler: {__instance.pawn?.mindState?.mentalStateHandler}");
-
                 if (__instance.pawn?.mindState?.mentalStateHandler == null) { 
                     __result = false;
                     return false;
